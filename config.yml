@@ -1,0 +1,4 @@
+# GemRouter application config
+# Edit here or via the Models select in the dashboard — changes take effect immediately, no restart needed.
+
+defaultModel: llama-3.1-8b-instant

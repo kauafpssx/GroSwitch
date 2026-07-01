@@ -1,0 +1,37 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model ApiKey {
+  id                String    @id @default(cuid())
+  name              String
+  key               String
+  status            String    @default("live")
+  lastUsedAt        DateTime?
+  limitedUntil      DateTime?
+  deadReason        String    @default("")
+  dailyCount        Int       @default(0)
+  dailyCountDate    String    @default("")
+  minuteCount       Int       @default(0)
+  minuteWindowStart Int       @default(0)
+  totalTokens       Int       @default(0)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([status])
+}
+
+model ModelRateLimit {
+  id        String @id @default(cuid())
+  model     String @unique
+  rpm       Int    @default(20)
+  rpd       Int    @default(1500)
+  tpm       Int    @default(40000)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

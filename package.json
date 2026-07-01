@@ -1,0 +1,22 @@
+{
+  "name": "gemrouter",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"bun run dev:backend\" \"bun run dev:frontend\"",
+    "dev:backend": "bun run --filter @gemrouter/backend dev",
+    "dev:frontend": "bun run --filter @gemrouter/frontend dev",
+    "build": "bun run --filter @gemrouter/* build",
+    "db:push": "bun run --filter @gemrouter/backend db:push",
+    "db:studio": "bun run --filter @gemrouter/backend db:studio",
+    "db:generate": "bun run --filter @gemrouter/backend db:generate"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "typescript": "^5.7.3"
+  }
+}
