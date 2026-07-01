@@ -65,11 +65,6 @@ export interface KeyStats {
   defaultModel: string;
 }
 
-export interface ChatMessage {
-  role: 'user' | 'model';
-  parts: string;
-}
-
 export interface ManagementResponse<T> {
   success: boolean;
   data?: T;

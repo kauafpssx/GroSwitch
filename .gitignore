@@ -1,8 +1,41 @@
+# Dependencies
 node_modules/
+
+# Build output
 dist/
 build/
+*.tsbuildinfo
+
+# Environment & secrets
 .env
+.env.local
+.env.*.local
+
+# Database
 *.db
 *.db-journal
-.turbo/
+*.sqlite
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
 .DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Testing
+coverage/
+
+# Bun
+.bunv
+
+# Turbo
+.turbo/

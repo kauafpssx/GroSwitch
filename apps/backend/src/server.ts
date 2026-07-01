@@ -1,10 +1,12 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
-import { env } from './lib/env';
-import { prisma, disconnectPrisma } from './lib/prisma';
-import { proxyRoutes } from './routes/proxy';
-import { apiKeyRoutes } from './routes/apiKeys';
-import { startKeyMonitor } from './workers/keyMonitor';
+import { env } from '@/lib/env';
+import { prisma, disconnectPrisma } from '@/lib/prisma';
+import { authPreHandler } from '@/plugins/auth';
+import { proxyRoutes } from '@/modules/proxy/proxy.routes';
+import { keysRoutes } from '@/modules/keys/keys.routes';
+import { modelsRoutes } from '@/modules/models/models.routes';
+import { startKeyMonitor } from '@/workers/keyMonitor';
 
 const app = Fastify({
   logger: {
@@ -24,8 +26,8 @@ await app.register(cors, {
 // Health check (no auth)
 app.get('/health', async () => ({ status: 'ok', timestamp: new Date().toISOString() }));
 
-// Public status endpoint (no auth) - shows key counts
-app.get('/status', async () => {
+// Status endpoint - shows key counts, requires the master API key
+app.get('/status', { preHandler: authPreHandler }, async () => {
   const total = await prisma.apiKey.count();
   const live = await prisma.apiKey.count({ where: { status: 'live' } });
   const dead = await prisma.apiKey.count({ where: { status: 'dead' } });
@@ -35,7 +37,8 @@ app.get('/status', async () => {
 
 // Protected routes
 await app.register(proxyRoutes, { prefix: '/v1' });
-await app.register(apiKeyRoutes, { prefix: '/api/v1' });
+await app.register(keysRoutes, { prefix: '/api/v1' });
+await app.register(modelsRoutes, { prefix: '/api/v1' });
 
 // Start background worker
 const stopMonitor = startKeyMonitor(env.KEY_MONITOR_INTERVAL_MS);
@@ -54,7 +57,7 @@ process.on('SIGTERM', shutdown);
 
 try {
   await app.listen({ port: env.PORT, host: '0.0.0.0' });
-  app.log.info(`GemRouter running on http://localhost:${env.PORT}`);
+  app.log.info(`GroSwitch running on http://localhost:${env.PORT}`);
 } catch (err) {
   app.log.error(err);
   process.exit(1);

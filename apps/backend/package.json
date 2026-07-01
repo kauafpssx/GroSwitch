@@ -1,5 +1,5 @@
 {
-  "name": "@gemrouter/backend",
+  "name": "@groswitch/backend",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -13,12 +13,11 @@
   },
   "dependencies": {
     "@fastify/cors": "^11.0.0",
-    "@gemrouter/common": "workspace:*",
+    "@groswitch/common": "workspace:*",
     "@prisma/client": "^6.3.0",
     "dotenv": "^16.4.7",
     "fastify": "^5.2.1",
-    "js-yaml": "^4.1.0",
-    "zod": "^3.24.2"
+    "js-yaml": "^4.1.0"
   },
   "devDependencies": {
     "@types/bun": "^1.2.3",

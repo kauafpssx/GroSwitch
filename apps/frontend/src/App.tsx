@@ -1,13 +1,16 @@
 import { useState } from 'react';
-import { hasApiKey } from './api/client';
-import { LoginPage } from './pages/Login';
-import { Dashboard } from './pages/Dashboard';
-import { Chat } from './pages/Chat';
-import { Models } from './pages/Models';
+import { hasApiKey, clearApiKey } from '@/shared/lib/auth';
+import { LoginPage } from '@/features/auth/Login';
+import { Dashboard } from '@/features/keys/Dashboard';
+import { Chat } from '@/features/chat/Chat';
+import { Models } from '@/features/models/Models';
+import { Eclipse } from 'lucide-react';
 
 export default function App() {
   const [loggedIn, setLoggedIn] = useState(hasApiKey());
   const [page, setPage] = useState<'dashboard' | 'models' | 'chat'>('dashboard');
+
+  const handleLogout = () => setLoggedIn(false);
 
   if (!loggedIn) {
     return <LoginPage onLogin={() => setLoggedIn(true)} />;
@@ -16,6 +19,10 @@ export default function App() {
   return (
     <div className="flex flex-col h-screen">
       <nav className="flex items-center gap-4 px-4 py-2 border-b border-border bg-background">
+        <span className="flex items-center gap-1.5 text-sm font-semibold mr-2">
+          <Eclipse className="w-4 h-4" />
+          GroSwitch
+        </span>
         <button
           onClick={() => setPage('dashboard')}
           className={`text-sm font-medium ${page === 'dashboard' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
@@ -37,8 +44,8 @@ export default function App() {
         <div className="flex-1" />
         <button
           onClick={() => {
-            localStorage.removeItem('gemrouter_api_key');
-            setLoggedIn(false);
+            clearApiKey();
+            handleLogout();
           }}
           className="text-xs text-muted-foreground hover:text-destructive"
         >
@@ -46,8 +53,8 @@ export default function App() {
         </button>
       </nav>
       <div className="flex-1 overflow-hidden">
-        {page === 'dashboard' && <Dashboard onLogout={() => setLoggedIn(false)} />}
-        {page === 'models' && <Models onLogout={() => setLoggedIn(false)} />}
+        {page === 'dashboard' && <Dashboard onLogout={handleLogout} />}
+        {page === 'models' && <Models onLogout={handleLogout} />}
         {page === 'chat' && <Chat />}
       </div>
     </div>

@@ -1,5 +1,5 @@
 {
-  "name": "@gemrouter/common",
+  "name": "@groswitch/common",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -10,8 +10,5 @@
   },
   "devDependencies": {
     "typescript": "^5.7.3"
-  },
-  "dependencies": {
-    "zod": "^3.24.2"
   }
 }

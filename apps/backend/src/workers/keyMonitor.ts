@@ -1,4 +1,4 @@
-import { apiKeyRepository } from '../repositories/apiKeyRepository';
+import { keysRepository } from '@/modules/keys/keys.repository';
 
 export function startKeyMonitor(intervalMs: number): () => void {
   const logger = {
@@ -8,8 +8,8 @@ export function startKeyMonitor(intervalMs: number): () => void {
 
   const interval = setInterval(async () => {
     try {
-      await apiKeyRepository.resetMinuteWindows();
-      await apiKeyRepository.resetDailyCounts();
+      await keysRepository.resetMinuteWindows();
+      await keysRepository.resetDailyCounts();
     } catch (err) {
       logger.warn(`Error in key monitor: ${err}`);
     }
