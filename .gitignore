@@ -6,6 +6,9 @@ dist/
 build/
 *.tsbuildinfo
 
+# Frontend dist must be built locally and committed (server can't build)
+!apps/frontend/dist/
+
 # Environment & secrets
 .env
 .env.local

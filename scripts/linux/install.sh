@@ -144,13 +144,6 @@ bun run db:push
 ok "Database schema pushed"
 
 # ──────────────────────────────────────────────
-# 6. Build all packages
-# ──────────────────────────────────────────────
-info "Building all packages..."
-bun run build
-ok "Build completed"
-
-# ──────────────────────────────────────────────
 echo ""
 echo -e "${GREEN}========================================${NC}"
 echo -e "${GREEN}  GroSwitch installation complete! 🎉${NC}"
@@ -158,6 +151,7 @@ echo -e "${GREEN}========================================${NC}"
 echo ""
 echo "  Next steps:"
 echo "    1. Edit .env with your credentials if you haven't already"
-echo "    2. Run the server:  ./scripts/linux/run.sh"
-echo "    3. Open http://localhost:8400 in your browser"
+echo "    2. Make sure the frontend dist/ folder exists (build on your local machine)"
+echo "    3. Run the server:  ./scripts/linux/run.sh"
+echo "    4. Open http://localhost:8400 in your browser"
 echo ""
