@@ -8,10 +8,11 @@ function getTodayString(): string {
   return new Date().toISOString().split('T')[0];
 }
 
-const MINUTE_MS = 60_000;
+const WINDOW_SEC = 60;
 
-export function msUntilWindowExpires(windowStart: number): number {
-  return Math.max(1000, windowStart + MINUTE_MS - Date.now());
+// windowStart is epoch seconds. Returns ms until the window expires.
+export function msUntilWindowExpires(windowStartSec: number): number {
+  return Math.max(1000, (windowStartSec + WINDOW_SEC) * 1000 - Date.now());
 }
 
 export const keysRepository = {
@@ -25,7 +26,7 @@ export const keysRepository = {
         dailyCount: 0,
         dailyCountDate: getTodayString(),
         minuteCount: 0,
-        minuteWindowStart: Date.now(),
+        minuteWindowStart: Math.floor(Date.now() / 1000),
       },
     });
     return this.toDomain(record);
@@ -64,8 +65,8 @@ export const keysRepository = {
   async findLiveKeys(modelRpd?: number, modelRpm?: number): Promise<ApiKey[]> {
     const now = new Date();
     const today = getTodayString();
-    const nowMs = Date.now();
-    const windowCutoff = nowMs - MINUTE_MS;
+    const nowSec = Math.floor(Date.now() / 1000);
+    const windowCutoff = nowSec - WINDOW_SEC;
     const dailyLimit = modelRpd ?? 0;
     const minuteLimit = modelRpm ?? DEFAULT_RPM;
 
@@ -80,7 +81,7 @@ export const keysRepository = {
       data: {
         status: 'dead',
         deadReason: 'minute_limit',
-        limitedUntil: new Date(nowMs + MINUTE_MS),
+        limitedUntil: new Date((nowSec + WINDOW_SEC) * 1000),
       },
     });
 
@@ -120,8 +121,8 @@ export const keysRepository = {
   // Uses single conditional UPDATE statements to prevent over-admission
   // from concurrent requests (no read-then-write race).
   async tryReserveMinuteSlot(id: string, minuteLimit: number): Promise<boolean> {
-    const nowMs = Date.now();
-    const windowCutoff = nowMs - MINUTE_MS;
+    const nowSec = Math.floor(Date.now() / 1000);
+    const windowCutoff = nowSec - WINDOW_SEC;
 
     // Window still active and under limit — just increment.
     const incremented = await prisma.apiKey.updateMany({
@@ -140,7 +141,7 @@ export const keysRepository = {
         id,
         minuteWindowStart: { lt: windowCutoff },
       },
-      data: { minuteCount: 1, minuteWindowStart: nowMs },
+      data: { minuteCount: 1, minuteWindowStart: nowSec },
     });
     if (reset.count > 0) return true;
 
@@ -209,14 +210,14 @@ export const keysRepository = {
   },
 
   async resetMinuteWindows(): Promise<void> {
-    const nowMs = Date.now();
+    const nowSec = Math.floor(Date.now() / 1000);
     await prisma.apiKey.updateMany({
       where: {
-        minuteWindowStart: { lt: nowMs - MINUTE_MS },
+        minuteWindowStart: { lt: nowSec - WINDOW_SEC },
       },
       data: {
         minuteCount: 0,
-        minuteWindowStart: nowMs,
+        minuteWindowStart: nowSec,
       },
     });
   },
