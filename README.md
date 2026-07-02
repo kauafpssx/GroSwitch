@@ -65,7 +65,7 @@ curl -X POST http://localhost:8400/v1/chat/completions \
 | Feature | Status |
 | --- | --- |
 | 🔀 Multi-Key Load Balancing (LRU) | ✅ Done |
-| ⚡ Atomic Per-Minute Rate Limiting | ✅ Done |
+| ⚡ Sliding-Window Rate Limiting | ✅ Done |
 | 📊 Daily Request Quota Tracking | ✅ Done |
 | 🔄 Automatic Failover & Retry | ✅ Done |
 | 🔐 AES-256-GCM Key Encryption | ✅ Done |
@@ -228,15 +228,6 @@ chmod +x scripts/linux/*.sh
 scripts\windows\install.bat
 ```
 
-Or manually:
-
-```bash
-bun install
-cp .env.example .env
-bun run db:push
-bun run build
-```
-
 Edit `.env` and set:
 
 ```env
@@ -244,27 +235,36 @@ MASTER_API_KEY=your-secret-master-key
 MASTER_ENCRYPTION_KEY=at-least-32-characters-long!!
 ```
 
-### 2️⃣ Start Development
+### 2️⃣ Development
 
 ```bash
 bun run dev
 ```
 
-This starts both the backend (port 8400) and frontend (port 5173) concurrently.
-In dev mode, Vite proxies API calls to the backend.
-
-Open [http://localhost:5173](http://localhost:5173) and log in with your `MASTER_API_KEY`.
+Backend on port 8400, frontend on port 5173 with Vite proxying API calls.
+Open [http://localhost:5173](http://localhost:5173).
 
 ### 3️⃣ Production (single port)
 
 ```bash
-bun run start
+# Run from source (no build required):
+./scripts/linux/run.sh
+
+# On Windows:
+scripts\windows\run.bat
 ```
 
-This builds the frontend and starts the backend on port 8400 serving both
-the API **and** the frontend UI from the same port.
+Backend serves both API and frontend on port 8400.
+Open [http://localhost:8400](http://localhost:8400).
 
-Open [http://localhost:8400](http://localhost:8400) — everything runs on one port.
+> 💡 **Memory-constrained servers (Alwaysdata):** Build the frontend on your
+> local machine and push `apps/frontend/dist/` to git. The install script
+> skips the build step — just runs `bun install` and `prisma db push`.
+> ```bash
+> git clone ... && cd GroSwitch
+> bash scripts/linux/install.sh   # installs deps + prisma
+> bash scripts/linux/run.sh        # starts from source
+> ```
 
 ---
 
@@ -275,7 +275,7 @@ Open [http://localhost:8400](http://localhost:8400) — everything runs on one p
 | `MASTER_API_KEY` | ✅ Yes | — | 🔑 Authentication key for dashboard & API access |
 | `MASTER_ENCRYPTION_KEY` | ✅ Yes | — | 🔐 Key derivation seed for AES-256-GCM encryption (32+ chars) |
 | `PORT` | ❌ No | `8400` | 🚪 Backend server port (use 8300-8499 on Alwaysdata) |
-| `DATABASE_URL` | ❌ No | `file:./dev.db` | 🗄 SQLite database connection string |
+| `DATABASE_URL` | ❌ No | `file:../../../dev.db` | 🗄 SQLite path (resolved relative to `apps/backend/prisma/`) |
 | `GROQ_BASE_URL` | ❌ No | `https://api.groq.com/openai/v1` | 🌐 Groq API base URL |
 | `KEY_MONITOR_INTERVAL_MS` | ❌ No | `60000` | 🔍 Background health check interval (ms) |
 
@@ -383,17 +383,17 @@ The least-recently-used key is picked, and an **atomic RPM reservation** prevent
 Two independent counters per key per model:
 
 - 📅 **Daily (RPD):** Date-string based, resets at midnight
-- ⚡ **Per-Minute (RPM):** Epoch-minute based, resets every 60 seconds
-
-Keys that hit their limit are marked `dead` with a cooldown timestamp parsed from Groq's `Retry-After` header.
+- ⚡ **Per-Minute (RPM):** Sliding window (60s), not fixed clock minutes.
+  Cooldown starts from the first request in the window, not from the next
+  `:00` boundary. Each key's cooldown is calculated from its own window start.
 
 ### 🔄 Failover
 
-When a key returns a rate limit (429), the system:
+When a key returns a rate limit (429):
 
-1. ☠️ Marks the key as `dead` with a cooldown
-2. ⚡ Immediately retries with the next available key
-3. 🔁 If only one key exists, retries up to 3 times with exponential backoff
+1. Marks the key `dead` with a cooldown from the `Retry-After` header
+2. Retries with the next available key
+3. Single-key mode retries up to 3 times with backoff
 
 Keys returning 401/403 are permanently marked `invalid`.
 
@@ -401,9 +401,9 @@ Keys returning 401/403 are permanently marked `invalid`.
 
 A background worker runs every 60 seconds (configurable) to:
 
-- 🧹 Clear stale per-minute counters
-- 📅 Roll over daily counters for the new day
-- 🟢 Revive keys whose cooldown has expired
+- Clear stale sliding-window counters
+- Roll over daily counters for the new day
+- Revive keys whose cooldown has expired
 
 ### 📊 Token Tracking
 
