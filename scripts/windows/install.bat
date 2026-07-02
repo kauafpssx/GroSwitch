@@ -58,7 +58,7 @@ if not exist ".env" (
             echo MASTER_API_KEY=change-me-to-a-secret-key
             echo MASTER_ENCRYPTION_KEY=change-me-to-at-least-32-chars-long
             echo PORT=8400
-            echo DATABASE_URL=file:./dev.db
+            echo DATABASE_URL=file:..\..\..\dev.db
             echo GROQ_BASE_URL=https://api.groq.com/openai/v1
             echo KEY_MONITOR_INTERVAL_MS=60000
         ) > .env
@@ -73,8 +73,8 @@ if not exist "apps\backend\.env" (
     if not exist "apps\backend" mkdir apps\backend
     (
         echo REM Prisma resolves file: paths relative to prisma\schema.prisma,
-        echo REM so ..\..\dev.db points to the repo root.
-        echo DATABASE_URL=file:..\..\dev.db
+        echo REM so ..\..\..\dev.db points to the repo root.
+        echo DATABASE_URL=file:..\..\..\dev.db
     ) > "apps\backend\.env"
     echo [INFO]  Created apps\backend\.env for Prisma
 ) else (

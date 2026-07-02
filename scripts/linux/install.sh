@@ -107,7 +107,9 @@ if [ ! -f ".env" ]; then
 MASTER_API_KEY=change-me-to-a-secret-key
 MASTER_ENCRYPTION_KEY=change-me-to-at-least-32-chars!!
 PORT=8400
-DATABASE_URL=file:./dev.db
+# Prisma resolves file: paths relative to apps/backend/prisma/,
+# so ../../../dev.db points to the repo root.
+DATABASE_URL=file:../../../dev.db
 GROQ_BASE_URL=https://api.groq.com/openai/v1
 KEY_MONITOR_INTERVAL_MS=60000
 EOF
@@ -124,8 +126,8 @@ mkdir -p apps/backend
 if [ ! -f "apps/backend/.env" ]; then
   cat > apps/backend/.env << 'EOF'
 # Prisma resolves file: paths relative to prisma/schema.prisma, so
-# ../../dev.db points to the repo root (same as the server uses).
-DATABASE_URL=file:../../dev.db
+# ../../../dev.db points to the repo root (same as the server uses).
+DATABASE_URL=file:../../../dev.db
 EOF
   info "Created apps/backend/.env for Prisma"
 else
