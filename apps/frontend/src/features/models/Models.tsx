@@ -55,6 +55,7 @@ export function Models({ onLogout }: ModelsProps) {
               <thead>
                 <tr className="bg-card border-b border-border">
                   <th className="text-left text-xs font-medium text-muted-foreground py-2 px-4">Model</th>
+                  <th className="text-left text-xs font-medium text-muted-foreground py-2 px-4">Type</th>
                   <th className="text-left text-xs font-medium text-muted-foreground py-2 px-4">RPM</th>
                   <th className="text-left text-xs font-medium text-muted-foreground py-2 px-4">RPD</th>
                   <th className="text-left text-xs font-medium text-muted-foreground py-2 px-4">TPM</th>

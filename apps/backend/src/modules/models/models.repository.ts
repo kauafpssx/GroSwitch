@@ -2,7 +2,7 @@ import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { prisma } from '@/lib/prisma';
 import { ROOT_DIR } from '@/lib/paths';
-import type { ModelRateLimit } from '@groswitch/common';
+import type { ModelRateLimit, ModelType } from '@groswitch/common';
 
 interface RateLimit {
   rpm: number;
@@ -11,6 +11,8 @@ interface RateLimit {
 }
 
 const FALLBACK_RATE_LIMIT: RateLimit = { rpm: 30, rpd: 1000, tpm: 8000 };
+const FALLBACK_MODEL_TYPE: ModelType = 'chat';
+const VALID_MODEL_TYPES = new Set<ModelType>(['chat', 'vision', 'stt', 'tts', 'guard']);
 
 function loadCsvRateLimits(): Record<string, RateLimit> {
   // Resolve from the repo root, not import.meta.dir, so this works both
@@ -34,7 +36,27 @@ function loadCsvRateLimits(): Record<string, RateLimit> {
   return limits;
 }
 
+// The `type` column is capability metadata, not a rate-limit — it's parsed
+// separately and never persisted to the DB (unlike rpm/rpd/tpm, which are
+// user-editable overrides), so a model's modality can't drift from the CSV.
+function loadCsvModelTypes(): Record<string, ModelType> {
+  const csvPath = resolve(ROOT_DIR, 'apps/backend/src/modules/models/model-rate-limits.csv');
+  const content = readFileSync(csvPath, 'utf-8');
+  const lines = content.trim().split('\n').slice(1);
+  const types: Record<string, ModelType> = {};
+
+  for (const line of lines) {
+    const [model, , , , type] = line.split(',');
+    if (model) {
+      const trimmedType = type?.trim() as ModelType | undefined;
+      types[model.trim()] = trimmedType && VALID_MODEL_TYPES.has(trimmedType) ? trimmedType : FALLBACK_MODEL_TYPE;
+    }
+  }
+  return types;
+}
+
 const RATE_LIMITS = loadCsvRateLimits();
+const MODEL_TYPES = loadCsvModelTypes();
 
 export const modelsRepository = {
   async findOrCreate(model: string): Promise<ModelRateLimit> {
@@ -102,6 +124,10 @@ export const modelsRepository = {
 
   getDefaults(): Record<string, RateLimit> {
     return { ...RATE_LIMITS };
+  },
+
+  getType(model: string): ModelType {
+    return MODEL_TYPES[model] || FALLBACK_MODEL_TYPE;
   },
 
   toDomain(record: {

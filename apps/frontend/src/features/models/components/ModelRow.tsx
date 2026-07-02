@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { ModelRateLimitPublic } from '@groswitch/common';
 import { Input } from '@/shared/ui/input';
 import { Button } from '@/shared/ui/button';
+import { Badge } from '@/shared/ui/badge';
 import { Pencil } from 'lucide-react';
 
 interface ModelRowProps {
@@ -39,6 +40,11 @@ export function ModelRow({ model, onSave }: ModelRowProps) {
     <tr className="border-b border-border hover:bg-card/50 transition-colors">
       <td className="py-2 px-4">
         <span className="font-mono text-xs">{model.model}</span>
+      </td>
+      <td className="py-2 px-4">
+        <Badge variant="secondary" className="text-[10px] font-normal">
+          {model.type}
+        </Badge>
       </td>
       <td className="py-2 px-4">
         {editing ? (

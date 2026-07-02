@@ -32,6 +32,8 @@ export interface ApiKeyPublic {
   createdAt: string;
 }
 
+export type ModelType = 'chat' | 'vision' | 'stt' | 'tts' | 'guard';
+
 export interface ModelRateLimit {
   id: string;
   model: string;
@@ -48,6 +50,7 @@ export interface ModelRateLimitPublic {
   rpm: number;
   rpd: number;
   tpm: number;
+  type: ModelType;
 }
 
 export interface KeyStats {

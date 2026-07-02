@@ -11,6 +11,7 @@ function toPublic(m: import('@groswitch/common').ModelRateLimit): ModelRateLimit
     rpm: m.rpm,
     rpd: m.rpd,
     tpm: m.tpm,
+    type: modelsRepository.getType(m.model),
   };
 }
 

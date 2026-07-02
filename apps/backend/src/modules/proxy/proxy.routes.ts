@@ -4,6 +4,7 @@ import { keysRepository } from '@/modules/keys/keys.repository';
 import { modelsRepository } from '@/modules/models/models.repository';
 import { appConfig } from '@/modules/models/config';
 import { attemptGroqRequest } from './attempt';
+import { proxyToGroq } from './groq-client';
 
 function unavailable(message: string) {
   return { error: { message, code: 503, status: 'UNAVAILABLE' } };
@@ -20,7 +21,9 @@ export async function proxyRoutes(app: FastifyInstance) {
 
     const rateLimit = await modelsRepository.findOrCreate(model);
     const liveKeys = await keysRepository.findLiveKeys(rateLimit.rpd, rateLimit.rpm);
-    const outcome = await attemptGroqRequest(app.log, model, body, isStream, rateLimit, liveKeys);
+    const outcome = await attemptGroqRequest(app.log, rateLimit, liveKeys, (key) =>
+      proxyToGroq(key, model, body, isStream),
+    );
 
     if (!outcome.ok) {
       const message =
@@ -85,7 +88,9 @@ export async function proxyRoutes(app: FastifyInstance) {
 
     const rateLimit = await modelsRepository.findOrCreate(model);
     const liveKeys = await keysRepository.findLiveKeys(rateLimit.rpd, rateLimit.rpm);
-    const outcome = await attemptGroqRequest(app.log, model, body, false, rateLimit, liveKeys);
+    const outcome = await attemptGroqRequest(app.log, rateLimit, liveKeys, (key) =>
+      proxyToGroq(key, model, body, false),
+    );
 
     if (!outcome.ok) {
       const message = outcome.reason === 'no_keys' ? 'No available API keys.' : 'All keys exhausted.';

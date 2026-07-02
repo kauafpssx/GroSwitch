@@ -1,6 +1,6 @@
 import type { FastifyBaseLogger } from 'fastify';
 import { keysRepository, msUntilWindowExpires } from '@/modules/keys/keys.repository';
-import { proxyToGroq, type GroqResponse } from './groq-client';
+import type { GroqResponse } from './groq-client';
 import type { ApiKey } from '@groswitch/common';
 
 const SINGLE_KEY_RETRIES = 3;
@@ -21,16 +21,17 @@ export type AttemptOutcome =
   | { ok: true; key: ApiKey; result: GroqResponse }
   | { ok: false; reason: 'no_keys' | 'exhausted' };
 
-// Shared by both the streaming and sync chat/completions routes: picks a live
-// key, respects the model's RPM before ever calling Groq, and retries across
-// keys (or with backoff, for a single key) on 429/401/403/5xx.
+// Shared by every Groq-backed route (chat, audio transcription, audio
+// speech): picks a live key, respects the model's RPM before ever calling
+// Groq, and retries across keys (or with backoff, for a single key) on
+// 429/401/403/5xx. The actual HTTP call is supplied by the caller via
+// `sendRequest`, since the request shape (JSON vs multipart, streaming vs
+// not) differs per route.
 export async function attemptGroqRequest(
   log: FastifyBaseLogger,
-  model: string,
-  body: Record<string, unknown>,
-  stream: boolean,
   rateLimit: { rpm: number },
   liveKeys: ApiKey[],
+  sendRequest: (key: ApiKey) => Promise<GroqResponse>,
 ): Promise<AttemptOutcome> {
   if (liveKeys.length === 0) {
     return { ok: false, reason: 'no_keys' };
@@ -55,7 +56,7 @@ export async function attemptGroqRequest(
         continue;
       }
 
-      const result = await proxyToGroq(selectedKey, model, body, stream);
+      const result = await sendRequest(selectedKey);
 
       if (result.status === 429) {
         const cooldownMs = parseCooldownMs(result.headers['retry-after']);

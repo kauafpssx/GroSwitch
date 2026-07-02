@@ -4,11 +4,14 @@ import { LoginPage } from '@/features/auth/Login';
 import { Dashboard } from '@/features/keys/Dashboard';
 import { Chat } from '@/features/chat/Chat';
 import { Models } from '@/features/models/Models';
+import { Vision } from '@/features/vision/Vision';
+import { Audio } from '@/features/audio/Audio';
+import { Guard } from '@/features/guard/Guard';
 import { Eclipse } from 'lucide-react';
 
 export default function App() {
   const [loggedIn, setLoggedIn] = useState(hasApiKey());
-  const [page, setPage] = useState<'dashboard' | 'models' | 'chat'>('dashboard');
+  const [page, setPage] = useState<'dashboard' | 'models' | 'chat' | 'vision' | 'audio' | 'guard'>('dashboard');
 
   const handleLogout = () => setLoggedIn(false);
 
@@ -41,6 +44,24 @@ export default function App() {
         >
           Chat
         </button>
+        <button
+          onClick={() => setPage('vision')}
+          className={`text-sm font-medium ${page === 'vision' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+        >
+          Vision
+        </button>
+        <button
+          onClick={() => setPage('audio')}
+          className={`text-sm font-medium ${page === 'audio' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+        >
+          Audio
+        </button>
+        <button
+          onClick={() => setPage('guard')}
+          className={`text-sm font-medium ${page === 'guard' ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+        >
+          Guard
+        </button>
         <div className="flex-1" />
         <button
           onClick={() => {
@@ -56,6 +77,9 @@ export default function App() {
         {page === 'dashboard' && <Dashboard onLogout={handleLogout} />}
         {page === 'models' && <Models onLogout={handleLogout} />}
         {page === 'chat' && <Chat />}
+        {page === 'vision' && <Vision onLogout={handleLogout} />}
+        {page === 'audio' && <Audio onLogout={handleLogout} />}
+        {page === 'guard' && <Guard onLogout={handleLogout} />}
       </div>
     </div>
   );

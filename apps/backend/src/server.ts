@@ -1,6 +1,7 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import fastifyStatic from '@fastify/static';
+import multipart from '@fastify/multipart';
 import { existsSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -8,6 +9,7 @@ import { env } from '@/lib/env';
 import { prisma, disconnectPrisma } from '@/lib/prisma';
 import { authPreHandler } from '@/plugins/auth';
 import { proxyRoutes } from '@/modules/proxy/proxy.routes';
+import { audioRoutes } from '@/modules/proxy/audio.routes';
 import { keysRoutes } from '@/modules/keys/keys.routes';
 import { modelsRoutes } from '@/modules/models/models.routes';
 import { startKeyMonitor } from '@/workers/keyMonitor';
@@ -15,6 +17,9 @@ import { startKeyMonitor } from '@/workers/keyMonitor';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const app = Fastify({
+  // Default is 1MB; vision requests send images as base64 data URIs inside
+  // the JSON body, which inflates well past that.
+  bodyLimit: 20 * 1024 * 1024,
   logger: {
     level: 'info',
     transport: {
@@ -27,6 +32,11 @@ await app.register(cors, {
   origin: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'X-API-KEY'],
+});
+
+// Groq's Whisper transcription endpoint caps uploads at 25MB.
+await app.register(multipart, {
+  limits: { fileSize: 25 * 1024 * 1024 },
 });
 
 // Health check (no auth)
@@ -43,6 +53,7 @@ app.get('/status', { preHandler: authPreHandler }, async () => {
 
 // Protected routes
 await app.register(proxyRoutes, { prefix: '/v1' });
+await app.register(audioRoutes, { prefix: '/v1' });
 await app.register(keysRoutes, { prefix: '/api/v1' });
 await app.register(modelsRoutes, { prefix: '/api/v1' });
 
