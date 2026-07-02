@@ -118,7 +118,22 @@ else
 fi
 
 # ──────────────────────────────────────────────
-# 5. Generate Prisma client and push schema
+# 5. Create .env for Prisma (needed in apps/backend/ for db push)
+# ──────────────────────────────────────────────
+mkdir -p apps/backend
+if [ ! -f "apps/backend/.env" ]; then
+  cat > apps/backend/.env << 'EOF'
+# Prisma resolves file: paths relative to prisma/schema.prisma, so
+# ../../dev.db points to the repo root (same as the server uses).
+DATABASE_URL=file:../../dev.db
+EOF
+  info "Created apps/backend/.env for Prisma"
+else
+  ok "apps/backend/.env already exists"
+fi
+
+# ──────────────────────────────────────────────
+# 6. Generate Prisma client and push schema
 # ──────────────────────────────────────────────
 info "Generating Prisma client..."
 bun run db:generate

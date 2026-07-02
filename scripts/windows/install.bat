@@ -68,7 +68,20 @@ if not exist ".env" (
     echo [OK]    .env file already exists
 )
 
-REM ── 4. Generate Prisma client and push schema ─
+REM ── 4. Create .env for Prisma (needed in apps\backend\ for db push) ─
+if not exist "apps\backend\.env" (
+    if not exist "apps\backend" mkdir apps\backend
+    (
+        echo REM Prisma resolves file: paths relative to prisma\schema.prisma,
+        echo REM so ..\..\dev.db points to the repo root.
+        echo DATABASE_URL=file:..\..\dev.db
+    ) > "apps\backend\.env"
+    echo [INFO]  Created apps\backend\.env for Prisma
+) else (
+    echo [OK]    apps\backend\.env already exists
+)
+
+REM ── 5. Generate Prisma client and push schema ─
 echo [INFO]  Generating Prisma client...
 call bun run db:generate
 if %errorlevel% neq 0 (
