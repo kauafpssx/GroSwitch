@@ -44,8 +44,11 @@ export async function attemptGroqRequest(
     try {
       const reserved = await keysRepository.tryReserveMinuteSlot(selectedKey.id, rateLimit.rpm);
       if (!reserved) {
-        // Sliding-window cooldown: calculated from when this key's window started
-        const cooldownMs = msUntilWindowExpires(selectedKey.minuteWindowStart);
+        // Re-fetch key to get the current minuteWindowStart (updated by
+        // tryReserveMinuteSlot). The stale value from liveKeys may be way off.
+        const freshKey = await keysRepository.findById(selectedKey.id);
+        const actualWindowStart = freshKey?.minuteWindowStart ?? selectedKey.minuteWindowStart;
+        const cooldownMs = msUntilWindowExpires(actualWindowStart);
         await keysRepository.markDead(selectedKey.id, 'minute_limit', cooldownMs);
         log.warn(`Key "${selectedKey.name}" hit RPM limit (${rateLimit.rpm}). Cooldown: ${Math.ceil(cooldownMs / 1000)}s`);
         if (liveKeys.length === 1 && attempt < attempts - 1) await sleep(cooldownMs);
