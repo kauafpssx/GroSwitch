@@ -18,6 +18,29 @@ A production-grade proxy that load-balances LLM requests across a pool of Groq A
 
 ---
 
+## 🚀 First Request
+
+Once the server is running, send your first chat completion request using `curl`
+(or your favorite HTTP client):
+
+```bash
+curl -X POST http://localhost:8400/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "X-API-KEY: your-master-api-key" \
+  -d '{
+    "model": "llama-3.1-8b-instant",
+    "messages": [
+      {"role": "user", "content": "Hello! Who are you?"}
+    ],
+    "stream": false
+  }'
+```
+
+> 💡 **Tip:** Replace `your-master-api-key` with the `MASTER_API_KEY` value you
+> set in your `.env` file. Set `"stream": true` for streaming responses (SSE).
+
+---
+
 ## 📚 Table of Contents
 
 - [✨ Features](#-features)
@@ -196,13 +219,22 @@ sequenceDiagram
 ```bash
 git clone https://github.com/your-username/groswitch.git
 cd groswitch
-bun install
+
+# Linux:
+chmod +x scripts/linux/*.sh
+./scripts/linux/install.sh
+
+# Windows:
+scripts\windows\install.bat
 ```
 
-### 2️⃣ Configure Environment
+Or manually:
 
 ```bash
+bun install
 cp .env.example .env
+bun run db:push
+bun run build
 ```
 
 Edit `.env` and set:
@@ -212,21 +244,27 @@ MASTER_API_KEY=your-secret-master-key
 MASTER_ENCRYPTION_KEY=at-least-32-characters-long!!
 ```
 
-### 3️⃣ Initialize Database
-
-```bash
-bun run db:push
-```
-
-### 4️⃣ Start Development
+### 2️⃣ Start Development
 
 ```bash
 bun run dev
 ```
 
-This starts both the backend (port 3000) and frontend (port 5173) concurrently.
+This starts both the backend (port 8400) and frontend (port 5173) concurrently.
+In dev mode, Vite proxies API calls to the backend.
 
 Open [http://localhost:5173](http://localhost:5173) and log in with your `MASTER_API_KEY`.
+
+### 3️⃣ Production (single port)
+
+```bash
+bun run start
+```
+
+This builds the frontend and starts the backend on port 8400 serving both
+the API **and** the frontend UI from the same port.
+
+Open [http://localhost:8400](http://localhost:8400) — everything runs on one port.
 
 ---
 
@@ -236,7 +274,7 @@ Open [http://localhost:5173](http://localhost:5173) and log in with your `MASTER
 | --- | --- | --- | --- |
 | `MASTER_API_KEY` | ✅ Yes | — | 🔑 Authentication key for dashboard & API access |
 | `MASTER_ENCRYPTION_KEY` | ✅ Yes | — | 🔐 Key derivation seed for AES-256-GCM encryption (32+ chars) |
-| `PORT` | ❌ No | `3000` | 🚪 Backend server port |
+| `PORT` | ❌ No | `8400` | 🚪 Backend server port (use 8300-8499 on Alwaysdata) |
 | `DATABASE_URL` | ❌ No | `file:./dev.db` | 🗄 SQLite database connection string |
 | `GROQ_BASE_URL` | ❌ No | `https://api.groq.com/openai/v1` | 🌐 Groq API base URL |
 | `KEY_MONITOR_INTERVAL_MS` | ❌ No | `60000` | 🔍 Background health check interval (ms) |

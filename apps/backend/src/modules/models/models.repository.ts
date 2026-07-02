@@ -1,6 +1,7 @@
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { prisma } from '@/lib/prisma';
+import { ROOT_DIR } from '@/lib/paths';
 import type { ModelRateLimit } from '@groswitch/common';
 
 interface RateLimit {
@@ -12,7 +13,10 @@ interface RateLimit {
 const FALLBACK_RATE_LIMIT: RateLimit = { rpm: 30, rpd: 1000, tpm: 8000 };
 
 function loadCsvRateLimits(): Record<string, RateLimit> {
-  const csvPath = resolve(import.meta.dir, './model-rate-limits.csv');
+  // Resolve from the repo root, not import.meta.dir, so this works both
+  // from source (apps/backend/src/modules/models/) and from the bundled
+  // output (apps/backend/dist/) where import.meta.dir differs.
+  const csvPath = resolve(ROOT_DIR, 'apps/backend/src/modules/models/model-rate-limits.csv');
   const content = readFileSync(csvPath, 'utf-8');
   const lines = content.trim().split('\n').slice(1); // skip header
   const limits: Record<string, RateLimit> = {};

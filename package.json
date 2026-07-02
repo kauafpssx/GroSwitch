@@ -10,7 +10,8 @@
     "dev": "concurrently \"bun run dev:backend\" \"bun run dev:frontend\"",
     "dev:backend": "bun run --filter @groswitch/backend dev",
     "dev:frontend": "bun run --filter @groswitch/frontend dev",
-    "build": "bun run --filter @groswitch/* build",
+    "build": "bun run --filter @groswitch/backend build && bun run --filter @groswitch/frontend build",
+    "start": "bun run build && bun run --filter @groswitch/backend start",
     "db:push": "bun run --filter @groswitch/backend db:push",
     "db:studio": "bun run --filter @groswitch/backend db:studio",
     "db:generate": "bun run --filter @groswitch/backend db:generate"

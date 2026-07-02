@@ -1,5 +1,9 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import fastifyStatic from '@fastify/static';
+import { existsSync } from 'fs';
+import { resolve, dirname } from 'path';
+import { fileURLToPath } from 'url';
 import { env } from '@/lib/env';
 import { prisma, disconnectPrisma } from '@/lib/prisma';
 import { authPreHandler } from '@/plugins/auth';
@@ -7,6 +11,8 @@ import { proxyRoutes } from '@/modules/proxy/proxy.routes';
 import { keysRoutes } from '@/modules/keys/keys.routes';
 import { modelsRoutes } from '@/modules/models/models.routes';
 import { startKeyMonitor } from '@/workers/keyMonitor';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const app = Fastify({
   logger: {
@@ -43,6 +49,30 @@ await app.register(modelsRoutes, { prefix: '/api/v1' });
 // Start background worker
 const stopMonitor = startKeyMonitor(env.KEY_MONITOR_INTERVAL_MS);
 
+// Serve built frontend (production) — if dist/ exists, serve static files
+// and fall back to index.html for SPA routing.
+// Resolves correctly both from dev (src/) and prod (dist/) locations:
+//   src/  → ../../frontend/dist = <root>/apps/frontend/dist
+//   dist/ → ../../frontend/dist = <root>/apps/frontend/dist
+const FRONTEND_DIST = resolve(__dirname, '../../frontend/dist');
+if (existsSync(FRONTEND_DIST) && existsSync(resolve(FRONTEND_DIST, 'index.html'))) {
+  await app.register(fastifyStatic, {
+    root: FRONTEND_DIST,
+    prefix: '/',
+    wildcard: false,
+  });
+
+  // SPA fallback: any unmatched GET request serves index.html
+  app.setNotFoundHandler(async (request, reply) => {
+    if (request.method === 'GET') {
+      return reply.sendFile('index.html');
+    }
+    return reply.status(404).send({ error: 'Not found' });
+  });
+
+  app.log.info(`Serving frontend from ${FRONTEND_DIST}`);
+}
+
 // Graceful shutdown
 async function shutdown() {
   app.log.info('Shutting down...');
@@ -56,7 +86,7 @@ process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
 
 try {
-  await app.listen({ port: env.PORT, host: '0.0.0.0' });
+  await app.listen({ port: env.PORT, host: '::' });
   app.log.info(`GroSwitch running on http://localhost:${env.PORT}`);
 } catch (err) {
   app.log.error(err);
