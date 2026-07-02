@@ -8,14 +8,10 @@ function getTodayString(): string {
   return new Date().toISOString().split('T')[0];
 }
 
-function getCurrentMinute(): number {
-  return Math.floor(Date.now() / 60_000);
-}
+const MINUTE_MS = 60_000;
 
-export function msUntilNextMinute(): number {
-  const now = Date.now();
-  const nextMinute = (Math.floor(now / 60_000) + 1) * 60_000;
-  return Math.max(1000, nextMinute - now);
+export function msUntilWindowExpires(windowStart: number): number {
+  return Math.max(1000, windowStart + MINUTE_MS - Date.now());
 }
 
 export const keysRepository = {
@@ -29,7 +25,7 @@ export const keysRepository = {
         dailyCount: 0,
         dailyCountDate: getTodayString(),
         minuteCount: 0,
-        minuteWindowStart: getCurrentMinute(),
+        minuteWindowStart: Date.now(),
       },
     });
     return this.toDomain(record);
@@ -68,24 +64,23 @@ export const keysRepository = {
   async findLiveKeys(modelRpd?: number, modelRpm?: number): Promise<ApiKey[]> {
     const now = new Date();
     const today = getTodayString();
-    const currentMinute = getCurrentMinute();
+    const nowMs = Date.now();
+    const windowCutoff = nowMs - MINUTE_MS;
     const dailyLimit = modelRpd ?? 0;
     const minuteLimit = modelRpm ?? DEFAULT_RPM;
 
-    // A key that already hit this model's RPM for the current window would
-    // otherwise just be silently excluded below (status still "live"), so
-    // the dashboard would never show it as rate-limited. Mark it dead with
-    // a cooldown here instead, before it gets filtered out.
+    // Pre-emptively mark keys that are over the sliding-window limit as dead
+    // so the dashboard reflects their state.
     await prisma.apiKey.updateMany({
       where: {
         status: 'live',
-        minuteWindowStart: currentMinute,
+        minuteWindowStart: { gte: windowCutoff },
         minuteCount: { gte: minuteLimit },
       },
       data: {
         status: 'dead',
         deadReason: 'minute_limit',
-        limitedUntil: new Date(now.getTime() + msUntilNextMinute()),
+        limitedUntil: new Date(nowMs + MINUTE_MS),
       },
     });
 
@@ -107,8 +102,9 @@ export const keysRepository = {
             ],
           },
           {
+            // Sliding window: window expired OR active but under limit
             OR: [
-              { minuteWindowStart: { not: currentMinute } },
+              { minuteWindowStart: { lt: windowCutoff } },
               { minuteCount: { lt: minuteLimit } },
             ],
           },
@@ -119,33 +115,42 @@ export const keysRepository = {
     return records.map(this.toDomain);
   },
 
-  // Atomically reserves one RPM slot for this key and returns whether it
-  // succeeded. Must be called *before* the Groq call, not after — checking a
-  // snapshot of minuteCount and incrementing only on success (the old
-  // approach) lets concurrent requests all pass the "under limit" check at
-  // once and over-admit past the RPM ceiling. Using single conditional
-  // UPDATE statements (not read-then-write) also means concurrent callers
-  // can't clobber each other's increments.
+  // Atomically reserves one RPM slot for this key using a sliding window.
+  // Returns true if the slot was reserved (key is under the RPM limit).
+  // Uses single conditional UPDATE statements to prevent over-admission
+  // from concurrent requests (no read-then-write race).
   async tryReserveMinuteSlot(id: string, minuteLimit: number): Promise<boolean> {
-    const currentMinute = getCurrentMinute();
+    const nowMs = Date.now();
+    const windowCutoff = nowMs - MINUTE_MS;
 
+    // Window still active and under limit — just increment.
     const incremented = await prisma.apiKey.updateMany({
-      where: { id, minuteWindowStart: currentMinute, minuteCount: { lt: minuteLimit } },
+      where: {
+        id,
+        minuteWindowStart: { gte: windowCutoff },
+        minuteCount: { lt: minuteLimit },
+      },
       data: { minuteCount: { increment: 1 } },
     });
     if (incremented.count > 0) return true;
 
-    // First request of a new minute window for this key.
+    // Window expired — start a new one with count=1.
     const reset = await prisma.apiKey.updateMany({
-      where: { id, minuteWindowStart: { not: currentMinute } },
-      data: { minuteCount: 1, minuteWindowStart: currentMinute },
+      where: {
+        id,
+        minuteWindowStart: { lt: windowCutoff },
+      },
+      data: { minuteCount: 1, minuteWindowStart: nowMs },
     });
     if (reset.count > 0) return true;
 
-    // Another concurrent request just claimed the fresh window — retry the
-    // conditional increment now that minuteWindowStart should be current.
+    // Another request just claimed the fresh window — retry increment.
     const retried = await prisma.apiKey.updateMany({
-      where: { id, minuteWindowStart: currentMinute, minuteCount: { lt: minuteLimit } },
+      where: {
+        id,
+        minuteWindowStart: { gte: windowCutoff },
+        minuteCount: { lt: minuteLimit },
+      },
       data: { minuteCount: { increment: 1 } },
     });
     return retried.count > 0;
@@ -204,14 +209,14 @@ export const keysRepository = {
   },
 
   async resetMinuteWindows(): Promise<void> {
-    const currentMinute = getCurrentMinute();
+    const nowMs = Date.now();
     await prisma.apiKey.updateMany({
       where: {
-        minuteWindowStart: { lt: currentMinute },
+        minuteWindowStart: { lt: nowMs - MINUTE_MS },
       },
       data: {
         minuteCount: 0,
-        minuteWindowStart: currentMinute,
+        minuteWindowStart: nowMs,
       },
     });
   },

@@ -1,5 +1,5 @@
 import type { FastifyBaseLogger } from 'fastify';
-import { keysRepository, msUntilNextMinute } from '@/modules/keys/keys.repository';
+import { keysRepository, msUntilWindowExpires } from '@/modules/keys/keys.repository';
 import { proxyToGroq, type GroqResponse } from './groq-client';
 import type { ApiKey } from '@groswitch/common';
 
@@ -44,7 +44,8 @@ export async function attemptGroqRequest(
     try {
       const reserved = await keysRepository.tryReserveMinuteSlot(selectedKey.id, rateLimit.rpm);
       if (!reserved) {
-        const cooldownMs = msUntilNextMinute();
+        // Sliding-window cooldown: calculated from when this key's window started
+        const cooldownMs = msUntilWindowExpires(selectedKey.minuteWindowStart);
         await keysRepository.markDead(selectedKey.id, 'minute_limit', cooldownMs);
         log.warn(`Key "${selectedKey.name}" hit RPM limit (${rateLimit.rpm}). Cooldown: ${Math.ceil(cooldownMs / 1000)}s`);
         if (liveKeys.length === 1 && attempt < attempts - 1) await sleep(cooldownMs);
