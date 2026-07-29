@@ -24,12 +24,43 @@ const REASONING_MODELS = new Set([
   'qwen/qwen3.6-27b',
 ]);
 
+// Groq's per-model cap on `max_tokens`/`max_completion_tokens`. OpenAI-SDK
+// clients often send a fixed large value (e.g. sized for a 131K-context
+// model) regardless of which model actually gets called — Groq 400s if it
+// exceeds the target model's own completion cap, so clamp instead of
+// forwarding it verbatim.
+const MAX_COMPLETION_TOKENS: Record<string, number> = {
+  'llama-3.1-8b-instant': 131072,
+  'llama-3.3-70b-versatile': 32768,
+  'openai/gpt-oss-120b': 65536,
+  'openai/gpt-oss-20b': 65536,
+  'openai/gpt-oss-safeguard-20b': 65536,
+  'qwen/qwen3-32b': 16384,
+  'qwen/qwen3.6-27b': 16384,
+  'groq/compound': 8192,
+  'groq/compound-mini': 8192,
+  'meta-llama/llama-prompt-guard-2-22m': 512,
+  'meta-llama/llama-prompt-guard-2-86m': 512,
+};
+
 function sanitizeBody(body: Record<string, unknown>, model: string): Record<string, unknown> {
-  if (!REASONING_MODELS.has(model) && 'reasoning_effort' in body) {
-    const { reasoning_effort: _reasoning_effort, ...rest } = body;
-    return rest;
+  const result = { ...body };
+
+  if (!REASONING_MODELS.has(model)) {
+    delete result.reasoning_effort;
   }
-  return body;
+
+  const cap = MAX_COMPLETION_TOKENS[model];
+  if (cap !== undefined) {
+    if (typeof result.max_tokens === 'number' && result.max_tokens > cap) {
+      result.max_tokens = cap;
+    }
+    if (typeof result.max_completion_tokens === 'number' && result.max_completion_tokens > cap) {
+      result.max_completion_tokens = cap;
+    }
+  }
+
+  return result;
 }
 
 export async function proxyRoutes(app: FastifyInstance) {
