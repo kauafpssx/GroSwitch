@@ -11,6 +11,27 @@ import { unavailable } from './errors';
 // key with headroom, so use generous limits rather than a real model's.
 const MODEL_LIST_LIMITS = { rpm: 1000, rpd: 1_000_000 };
 
+// Only Groq's reasoning-capable models accept `reasoning_effort`; every
+// other model 400s on it. OpenAI-SDK clients (e.g. Hermes) send it by
+// default on every request regardless of model, expecting the server to
+// just ignore it if unsupported — so strip it here instead of letting it
+// fail every key in the pool with the same 400.
+const REASONING_MODELS = new Set([
+  'openai/gpt-oss-120b',
+  'openai/gpt-oss-20b',
+  'openai/gpt-oss-safeguard-20b',
+  'qwen/qwen3-32b',
+  'qwen/qwen3.6-27b',
+]);
+
+function sanitizeBody(body: Record<string, unknown>, model: string): Record<string, unknown> {
+  if (!REASONING_MODELS.has(model) && 'reasoning_effort' in body) {
+    const { reasoning_effort: _reasoning_effort, ...rest } = body;
+    return rest;
+  }
+  return body;
+}
+
 export async function proxyRoutes(app: FastifyInstance) {
   app.addHook('preHandler', authPreHandler);
 
@@ -48,10 +69,11 @@ export async function proxyRoutes(app: FastifyInstance) {
     // in — clients that omit `stream` expect a plain JSON body back, not SSE.
     const isStream = body.stream === true;
 
+    const sanitizedBody = sanitizeBody(body, model);
     const rateLimit = await modelsRepository.findOrCreate(model);
     const liveKeys = await keysRepository.findLiveKeys(rateLimit.rpd, rateLimit.rpm);
     const outcome = await attemptGroqRequest(app.log, rateLimit, liveKeys, (key) =>
-      proxyToGroq(key, model, body, isStream),
+      proxyToGroq(key, model, sanitizedBody, isStream),
     );
 
     if (!outcome.ok) {
@@ -115,10 +137,11 @@ export async function proxyRoutes(app: FastifyInstance) {
     const body = request.body as Record<string, unknown>;
     const model = (body.model as string) || appConfig.getDefaultModel();
 
+    const sanitizedBody = sanitizeBody(body, model);
     const rateLimit = await modelsRepository.findOrCreate(model);
     const liveKeys = await keysRepository.findLiveKeys(rateLimit.rpd, rateLimit.rpm);
     const outcome = await attemptGroqRequest(app.log, rateLimit, liveKeys, (key) =>
-      proxyToGroq(key, model, body, false),
+      proxyToGroq(key, model, sanitizedBody, false),
     );
 
     if (!outcome.ok) {
