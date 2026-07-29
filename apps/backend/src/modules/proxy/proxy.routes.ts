@@ -44,7 +44,9 @@ export async function proxyRoutes(app: FastifyInstance) {
   app.post('/chat/completions', async (request, reply) => {
     const body = request.body as Record<string, unknown>;
     const model = (body.model as string) || appConfig.getDefaultModel();
-    const isStream = body.stream !== false;
+    // OpenAI's default is non-streaming unless the caller explicitly opts
+    // in — clients that omit `stream` expect a plain JSON body back, not SSE.
+    const isStream = body.stream === true;
 
     const rateLimit = await modelsRepository.findOrCreate(model);
     const liveKeys = await keysRepository.findLiveKeys(rateLimit.rpd, rateLimit.rpm);

@@ -56,6 +56,7 @@ export function Chat() {
         },
         body: JSON.stringify({
           messages: [...messages.map(m => ({ role: m.role, content: m.content })), { role: 'user', content: userMessage }],
+          stream: true,
         }),
       });
 

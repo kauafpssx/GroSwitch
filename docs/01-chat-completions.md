@@ -17,7 +17,7 @@ X-API-KEY: <MASTER_API_KEY>
 | --- | --- | --- | --- |
 | `model` | string | No | Defaults to the configured default model (see [09-config-update.md](./09-config-update.md)) |
 | `messages` | array | Yes | OpenAI chat format |
-| `stream` | boolean | No | Default `true`. Set `false` to get a single JSON response instead of SSE (or use [02-chat-completions-sync.md](./02-chat-completions-sync.md)) |
+| `stream` | boolean | No | Default `false` (matches OpenAI). Set `true` to get SSE instead of a single JSON response (or use [02-chat-completions-sync.md](./02-chat-completions-sync.md), which is always non-streaming) |
 | ...rest | — | No | Any other Groq-supported chat-completions field (`temperature`, `max_tokens`, `top_p`, etc.) is passed through untouched |
 
 ## Text example
