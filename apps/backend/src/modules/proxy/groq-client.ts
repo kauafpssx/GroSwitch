@@ -94,6 +94,39 @@ export async function proxyAudioTranscription(apiKey: ApiKey, formData: FormData
   };
 }
 
+async function proxyGet(url: string, apiKey: ApiKey): Promise<GroqResponse> {
+  const decryptedKey = keysRepository.getDecryptedKey(apiKey.key);
+
+  const response = await fetch(url, {
+    headers: { 'Authorization': `Bearer ${decryptedKey}` },
+  });
+
+  const responseHeaders: Record<string, string> = {};
+  response.headers.forEach((value, key) => {
+    responseHeaders[key] = value;
+  });
+
+  let bodyText: string | undefined;
+  try {
+    bodyText = await response.text();
+  } catch {
+    bodyText = '{"error":{"message":"Failed to read upstream response"}}';
+  }
+
+  return { status: response.status, headers: responseHeaders, stream: null, body: bodyText };
+}
+
+// Pass Groq's own model catalog straight through so `/v1/models` reflects
+// whatever Groq actually has live right now, instead of drifting out of
+// sync with a hand-maintained CSV.
+export function proxyListModels(apiKey: ApiKey): Promise<GroqResponse> {
+  return proxyGet(`${env.GROQ_BASE_URL}/models`, apiKey);
+}
+
+export function proxyGetModel(apiKey: ApiKey, model: string): Promise<GroqResponse> {
+  return proxyGet(`${env.GROQ_BASE_URL}/models/${encodeURIComponent(model)}`, apiKey);
+}
+
 // Forwards a text-to-speech request to Groq's /audio/speech endpoint. On
 // success the response body is binary audio, not JSON, so it's read via
 // arrayBuffer() instead of text() and carried on `arrayBuffer`/`contentType`.

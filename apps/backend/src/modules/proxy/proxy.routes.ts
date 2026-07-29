@@ -4,24 +4,40 @@ import { keysRepository } from '@/modules/keys/keys.repository';
 import { modelsRepository } from '@/modules/models/models.repository';
 import { appConfig } from '@/modules/models/config';
 import { attemptGroqRequest } from './attempt';
-import { proxyToGroq } from './groq-client';
+import { proxyToGroq, proxyListModels, proxyGetModel } from './groq-client';
 import { unavailable } from './errors';
+
+// Model listing isn't tied to any single model's rpm/rpd — just needs a live
+// key with headroom, so use generous limits rather than a real model's.
+const MODEL_LIST_LIMITS = { rpm: 1000, rpd: 1_000_000 };
 
 export async function proxyRoutes(app: FastifyInstance) {
   app.addHook('preHandler', authPreHandler);
 
-  // OpenAI-compatible model listing, e.g. `GET /v1/models`.
+  // OpenAI-compatible model listing — passes Groq's own catalog straight
+  // through so it never drifts from what Groq actually has live.
   app.get('/models', async (_request, reply) => {
-    const models = await modelsRepository.findAll();
-    return reply.send({
-      object: 'list',
-      data: models.map((m) => ({
-        id: m.model,
-        object: 'model',
-        created: Math.floor(m.createdAt.getTime() / 1000),
-        owned_by: 'groq',
-      })),
-    });
+    const liveKeys = await keysRepository.findLiveKeys(MODEL_LIST_LIMITS.rpd, MODEL_LIST_LIMITS.rpm);
+    const outcome = await attemptGroqRequest(app.log, MODEL_LIST_LIMITS, liveKeys, (key) => proxyListModels(key));
+
+    if (!outcome.ok) {
+      return reply.status(503).send(unavailable('No available API keys.'));
+    }
+
+    return reply.send(JSON.parse(outcome.result.body || '{}'));
+  });
+
+  // OpenAI-compatible single-model lookup.
+  app.get('/models/:model', async (request, reply) => {
+    const { model } = request.params as { model: string };
+    const liveKeys = await keysRepository.findLiveKeys(MODEL_LIST_LIMITS.rpd, MODEL_LIST_LIMITS.rpm);
+    const outcome = await attemptGroqRequest(app.log, MODEL_LIST_LIMITS, liveKeys, (key) => proxyGetModel(key, model));
+
+    if (!outcome.ok) {
+      return reply.status(503).send(unavailable('No available API keys.'));
+    }
+
+    return reply.status(outcome.result.status).send(JSON.parse(outcome.result.body || '{}'));
   });
 
   // Streaming endpoint

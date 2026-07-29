@@ -345,13 +345,12 @@ Pre-configured rate limits for all Groq models. `type` drives which route reache
 | `llama-3.1-8b-instant` | chat | 30 | 14,400 | 6,000 |
 | `llama-3.3-70b-versatile` | chat | 30 | 1,000 | 12,000 |
 | `qwen/qwen3-32b` | chat | 60 | 1,000 | 6,000 |
-| `qwen/qwen3.6-27b` | chat | 30 | 1,000 | 8,000 |
 | `openai/gpt-oss-120b` | chat | 30 | 1,000 | 8,000 |
 | `openai/gpt-oss-20b` | chat | 30 | 1,000 | 8,000 |
 | `groq/compound` | chat | 30 | 250 | 70,000 |
 | `groq/compound-mini` | chat | 30 | 250 | 70,000 |
 | `allam-2-7b` | chat | 30 | 7,000 | 6,000 |
-| `meta-llama/llama-4-scout-17b-16e-instruct` | vision | 30 | 1,000 | 30,000 |
+| `qwen/qwen3.6-27b` | vision | 30 | 1,000 | 8,000 |
 | `meta-llama/llama-prompt-guard-2-22m` | guard | 30 | 14,400 | 15,000 |
 | `meta-llama/llama-prompt-guard-2-86m` | guard | 30 | 14,400 | 15,000 |
 | `openai/gpt-oss-safeguard-20b` | guard | 30 | 1,000 | 8,000 |

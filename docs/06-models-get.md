@@ -14,7 +14,7 @@ X-API-KEY: <MASTER_API_KEY>
 
 | Param | Notes |
 | --- | --- |
-| `model` | Model ID, URL-encoded (e.g. `meta-llama%2Fllama-4-scout-17b-16e-instruct` for `meta-llama/llama-4-scout-17b-16e-instruct`) |
+| `model` | Model ID, URL-encoded (e.g. `qwen%2Fqwen3.6-27b` for `qwen/qwen3.6-27b`) |
 
 ## Example
 

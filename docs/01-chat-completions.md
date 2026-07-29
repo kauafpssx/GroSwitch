@@ -35,11 +35,11 @@ curl -X POST http://localhost:8400/v1/chat/completions \
 
 ## Vision / OCR example
 
-Use a `vision`-type model (`meta-llama/llama-4-scout-17b-16e-instruct`). Send `content` as an array with a text part and an `image_url` part (data URI or hosted URL):
+Use a `vision`-type model (`qwen/qwen3.6-27b`). Send `content` as an array with a text part and an `image_url` part (data URI or hosted URL):
 
 ```json
 {
-  "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+  "model": "qwen/qwen3.6-27b",
   "messages": [
     {
       "role": "user",

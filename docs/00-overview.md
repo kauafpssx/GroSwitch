@@ -50,6 +50,7 @@ Two conventions are used depending on the route group:
 | `POST` | `/v1/audio/transcriptions` | [03-audio-transcriptions.md](./03-audio-transcriptions.md) |
 | `POST` | `/v1/audio/speech` | [04-audio-speech.md](./04-audio-speech.md) |
 | `GET` | `/v1/models` | [05b-v1-models-list.md](./05b-v1-models-list.md) |
+| `GET` | `/v1/models/:model` | [05b-v1-models-list.md](./05b-v1-models-list.md) |
 | `GET` | `/api/v1/models` | [05-models-list.md](./05-models-list.md) |
 | `GET` | `/api/v1/models/:model` | [06-models-get.md](./06-models-get.md) |
 | `PUT` | `/api/v1/models/:model` | [07-models-update.md](./07-models-update.md) |
