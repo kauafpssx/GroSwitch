@@ -7,11 +7,14 @@ Base URL:
 
 ## Auth
 
-Every route below except `GET /health` requires the header:
+Every route below except `GET /health` requires one of:
 
 ```
 X-API-KEY: <MASTER_API_KEY>
+Authorization: Bearer <MASTER_API_KEY>
 ```
+
+The `Authorization: Bearer` form exists so OpenAI SDKs (which always send it, never `X-API-KEY`) work unmodified — just point `baseURL` at this server and `apiKey` at `MASTER_API_KEY`.
 
 `MASTER_API_KEY` is set in `.env`. It's a single shared secret; there's no per-user auth. A missing or wrong key returns:
 
@@ -32,10 +35,11 @@ Two conventions are used depending on the route group:
   ```json
   { "success": false, "error": "message" }
   ```
-- **Proxy routes** (`/v1/*`) return the upstream Groq response body as-is (OpenAI-compatible shape), or on gateway-level failure:
+- **Proxy routes** (`/v1/*`) return the upstream Groq response body as-is (OpenAI-compatible shape), or on gateway-level failure use OpenAI's error envelope:
   ```json
-  { "error": { "message": "...", "code": 503, "status": "UNAVAILABLE" } }
+  { "error": { "message": "...", "type": "unavailable_error", "param": null, "code": "service_unavailable" } }
   ```
+  (`400`s from this gateway, e.g. missing fields on the audio routes, use `type: "invalid_request_error"`.)
 
 ## Routes
 
@@ -45,6 +49,7 @@ Two conventions are used depending on the route group:
 | `POST` | `/v1/chat/completions/sync` | [02-chat-completions-sync.md](./02-chat-completions-sync.md) |
 | `POST` | `/v1/audio/transcriptions` | [03-audio-transcriptions.md](./03-audio-transcriptions.md) |
 | `POST` | `/v1/audio/speech` | [04-audio-speech.md](./04-audio-speech.md) |
+| `GET` | `/v1/models` | [05b-v1-models-list.md](./05b-v1-models-list.md) |
 | `GET` | `/api/v1/models` | [05-models-list.md](./05-models-list.md) |
 | `GET` | `/api/v1/models/:model` | [06-models-get.md](./06-models-get.md) |
 | `PUT` | `/api/v1/models/:model` | [07-models-update.md](./07-models-update.md) |

@@ -4,10 +4,7 @@ import { keysRepository } from '@/modules/keys/keys.repository';
 import { modelsRepository } from '@/modules/models/models.repository';
 import { attemptGroqRequest } from './attempt';
 import { proxyAudioSpeech, proxyAudioTranscription } from './groq-client';
-
-function unavailable(message: string) {
-  return { error: { message, code: 503, status: 'UNAVAILABLE' } };
-}
+import { unavailable, badRequest } from './errors';
 
 export async function audioRoutes(app: FastifyInstance) {
   app.addHook('preHandler', authPreHandler);
@@ -33,10 +30,10 @@ export async function audioRoutes(app: FastifyInstance) {
 
     const model = fields.model?.[0];
     if (!model) {
-      return reply.status(400).send({ error: { message: 'Missing required field: model', code: 400, status: 'BAD_REQUEST' } });
+      return reply.status(400).send(badRequest('Missing required field: model'));
     }
     if (!fileBuffer && !fields.url?.[0]) {
-      return reply.status(400).send({ error: { message: 'Provide either a file or a url', code: 400, status: 'BAD_REQUEST' } });
+      return reply.status(400).send(badRequest('Provide either a file or a url'));
     }
 
     const formData = new FormData();
@@ -76,7 +73,7 @@ export async function audioRoutes(app: FastifyInstance) {
     const body = request.body as Record<string, unknown>;
     const model = body.model as string;
     if (!model) {
-      return reply.status(400).send({ error: { message: 'Missing required field: model', code: 400, status: 'BAD_REQUEST' } });
+      return reply.status(400).send(badRequest('Missing required field: model'));
     }
     // Groq's Orpheus models only support `wav`, unlike the fuller
     // flac/mp3/mulaw/ogg/wav set other TTS models accept — Groq's own

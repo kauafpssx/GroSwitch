@@ -12,7 +12,14 @@ function safeEquals(provided: string, expected: string): boolean {
 }
 
 export async function authPreHandler(request: FastifyRequest, reply: FastifyReply) {
-  const providedKey = request.headers['x-api-key'];
+  const headerKey = request.headers['x-api-key'];
+  const authHeader = request.headers['authorization'];
+  // OpenAI SDKs send `Authorization: Bearer <key>` instead of X-API-KEY.
+  const bearerKey =
+    typeof authHeader === 'string' && authHeader.startsWith('Bearer ')
+      ? authHeader.slice('Bearer '.length)
+      : undefined;
+  const providedKey = typeof headerKey === 'string' ? headerKey : bearerKey;
 
   if (typeof providedKey !== 'string' || !safeEquals(providedKey, env.MASTER_API_KEY)) {
     return reply.status(401).send({

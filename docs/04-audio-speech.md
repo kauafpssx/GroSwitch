@@ -51,8 +51,8 @@ curl -X POST http://localhost:8400/v1/audio/speech \
 
 | Status | Body | Cause |
 | --- | --- | --- |
-| `400` | `{"error":{"message":"Missing required field: model","code":400,"status":"BAD_REQUEST"}}` | No `model` in the request body |
+| `400` | `{"error":{"message":"Missing required field: model","type":"invalid_request_error","param":null,"code":"bad_request"}}` | No `model` in the request body |
 | `502` | `{"error":{"message":"voice is required","type":"invalid_request_error"}}` (or similar) | Groq rejected the request; most commonly a missing/invalid `voice` |
-| `503` | `{"error":{"message":"No available API keys...","code":503,"status":"UNAVAILABLE"}}` | Same key-selection logic as chat; see [00-overview.md](./00-overview.md) |
+| `503` | `{"error":{"message":"No available API keys...","type":"unavailable_error","param":null,"code":"service_unavailable"}}` | Same key-selection logic as chat; see [00-overview.md](./00-overview.md) |
 
 > **Note:** Groq gates some TTS models behind org terms acceptance. If every attempt fails with `model_terms_required`, accept the model's terms at `console.groq.com/playground?model=<model-id>` (org admin) before retrying.

@@ -5,13 +5,24 @@ import { modelsRepository } from '@/modules/models/models.repository';
 import { appConfig } from '@/modules/models/config';
 import { attemptGroqRequest } from './attempt';
 import { proxyToGroq } from './groq-client';
-
-function unavailable(message: string) {
-  return { error: { message, code: 503, status: 'UNAVAILABLE' } };
-}
+import { unavailable } from './errors';
 
 export async function proxyRoutes(app: FastifyInstance) {
   app.addHook('preHandler', authPreHandler);
+
+  // OpenAI-compatible model listing, e.g. `GET /v1/models`.
+  app.get('/models', async (_request, reply) => {
+    const models = await modelsRepository.findAll();
+    return reply.send({
+      object: 'list',
+      data: models.map((m) => ({
+        id: m.model,
+        object: 'model',
+        created: Math.floor(m.createdAt.getTime() / 1000),
+        owned_by: 'groq',
+      })),
+    });
+  });
 
   // Streaming endpoint
   app.post('/chat/completions', async (request, reply) => {

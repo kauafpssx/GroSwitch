@@ -39,6 +39,22 @@ curl -X POST http://localhost:8400/v1/chat/completions \
 > 💡 **Tip:** Replace `your-master-api-key` with the `MASTER_API_KEY` value you
 > set in your `.env` file. Set `"stream": true` for streaming responses (SSE).
 
+Or use the official OpenAI SDK directly, no shim needed — the gateway accepts `Authorization: Bearer <key>` and speaks OpenAI's request/response/error shapes:
+
+```ts
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  baseURL: "http://localhost:8400/v1",
+  apiKey: "your-master-api-key",
+});
+
+const res = await client.chat.completions.create({
+  model: "llama-3.1-8b-instant",
+  messages: [{ role: "user", content: "Hello! Who are you?" }],
+});
+```
+
 ---
 
 ## 📚 Table of Contents
@@ -291,7 +307,9 @@ Open [http://localhost:8400](http://localhost:8400).
 
 ## 📡 API Reference
 
-Every route has its own doc in [`docs/`](./docs) with method, headers, body, response shape, and error cases. All of them except `GET /health` require the `X-API-KEY` header. Start with [00-overview.md](./docs/00-overview.md) for auth, response envelopes, model types, and the retry/rate-limit logic shared by every `/v1/*` route.
+Every route has its own doc in [`docs/`](./docs) with method, headers, body, response shape, and error cases. All of them except `GET /health` require the `X-API-KEY` header (or `Authorization: Bearer` for `/v1/*` — see below). Start with [00-overview.md](./docs/00-overview.md) for auth, response envelopes, model types, and the retry/rate-limit logic shared by every `/v1/*` route.
+
+`/v1/*` routes are OpenAI-compatible: same request/response shapes as `api.openai.com`, `Authorization: Bearer <key>` auth, and OpenAI's `{error:{message,type,param,code}}` error envelope — point any OpenAI SDK at this gateway's `baseURL` and it works unmodified.
 
 | Method | Route | Doc |
 | --- | --- | --- |
@@ -299,6 +317,7 @@ Every route has its own doc in [`docs/`](./docs) with method, headers, body, res
 | `POST` | `/v1/chat/completions/sync` | [02-chat-completions-sync.md](./docs/02-chat-completions-sync.md) |
 | `POST` | `/v1/audio/transcriptions` | [03-audio-transcriptions.md](./docs/03-audio-transcriptions.md) |
 | `POST` | `/v1/audio/speech` | [04-audio-speech.md](./docs/04-audio-speech.md) |
+| `GET` | `/v1/models` | [05b-v1-models-list.md](./docs/05b-v1-models-list.md) |
 | `GET` | `/api/v1/models` | [05-models-list.md](./docs/05-models-list.md) |
 | `GET` | `/api/v1/models/:model` | [06-models-get.md](./docs/06-models-get.md) |
 | `PUT` | `/api/v1/models/:model` | [07-models-update.md](./docs/07-models-update.md) |
@@ -435,7 +454,7 @@ Every successful response tracks `prompt_tokens`, `completion_tokens`, and `tota
 - [x] 🔍 Background key health monitor
 - [ ] 🐳 Docker & Docker Compose support
 - [ ] ☸️ Kubernetes Helm chart
-- [ ] 🔌 OpenAI-compatible API format
+- [x] 🔌 OpenAI-compatible API format
 - [ ] 📣 Webhook notifications for key events
 - [ ] 🌐 Distributed clustering with Redis
 - [ ] 🔑 OAuth2 / OIDC authentication

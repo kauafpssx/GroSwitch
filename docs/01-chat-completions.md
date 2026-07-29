@@ -88,7 +88,7 @@ Full JSON body:
 
 | Status | Body | Cause |
 | --- | --- | --- |
-| `503` | `{"error":{"message":"No available API keys. All keys are rate-limited or invalid.","code":503,"status":"UNAVAILABLE"}}` | No live key passed the daily/minute filter |
-| `503` | `{"error":{"message":"All keys exhausted.","code":503,"status":"UNAVAILABLE"}}` | Every candidate key returned non-200 (including Groq-side 400s, e.g. an unaccepted model or malformed image) |
+| `503` | `{"error":{"message":"No available API keys. All keys are rate-limited or invalid.","type":"unavailable_error","param":null,"code":"service_unavailable"}}` | No live key passed the daily/minute filter |
+| `503` | `{"error":{"message":"All keys exhausted.","type":"unavailable_error","param":null,"code":"service_unavailable"}}` | Every candidate key returned non-200 (including Groq-side 400s, e.g. an unaccepted model or malformed image) |
 
 See [00-overview.md](./00-overview.md) for the key-selection/retry logic shared by every `/v1/*` route.

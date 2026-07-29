@@ -49,8 +49,8 @@ Groq's JSON body, returned as-is:
 
 | Status | Body | Cause |
 | --- | --- | --- |
-| `400` | `{"error":{"message":"Missing required field: model","code":400,"status":"BAD_REQUEST"}}` | No `model` field |
-| `400` | `{"error":{"message":"Provide either a file or a url","code":400,"status":"BAD_REQUEST"}}` | Neither a `file` part nor a `url` field was given |
-| `503` | `{"error":{"message":"No available API keys...","code":503,"status":"UNAVAILABLE"}}` | Same key-selection logic as chat; see [00-overview.md](./00-overview.md) |
+| `400` | `{"error":{"message":"Missing required field: model","type":"invalid_request_error","param":null,"code":"bad_request"}}` | No `model` field |
+| `400` | `{"error":{"message":"Provide either a file or a url","type":"invalid_request_error","param":null,"code":"bad_request"}}` | Neither a `file` part nor a `url` field was given |
+| `503` | `{"error":{"message":"No available API keys...","type":"unavailable_error","param":null,"code":"service_unavailable"}}` | Same key-selection logic as chat; see [00-overview.md](./00-overview.md) |
 
 Rate limits (`rpm`/`rpd`) apply per model same as chat; `tpm` is `0` for Whisper models since Groq bills transcription by audio duration, not tokens.

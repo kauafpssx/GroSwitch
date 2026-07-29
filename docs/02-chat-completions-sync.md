@@ -48,7 +48,7 @@ curl -X POST http://localhost:8400/v1/chat/completions/sync \
 
 | Status | Body | Cause |
 | --- | --- | --- |
-| `503` | `{"error":{"message":"No available API keys.","code":503,"status":"UNAVAILABLE"}}` | No live key passed the daily/minute filter |
-| `503` | `{"error":{"message":"All keys exhausted.","code":503,"status":"UNAVAILABLE"}}` | Every candidate key returned non-200 |
+| `503` | `{"error":{"message":"No available API keys.","type":"unavailable_error","param":null,"code":"service_unavailable"}}` | No live key passed the daily/minute filter |
+| `503` | `{"error":{"message":"All keys exhausted.","type":"unavailable_error","param":null,"code":"service_unavailable"}}` | Every candidate key returned non-200 |
 
 See [00-overview.md](./00-overview.md) for the key-selection/retry logic shared by every `/v1/*` route.
