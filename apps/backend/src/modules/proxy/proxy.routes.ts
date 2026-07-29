@@ -43,11 +43,28 @@ const MAX_COMPLETION_TOKENS: Record<string, number> = {
   'meta-llama/llama-prompt-guard-2-86m': 512,
 };
 
+// groq/compound(-mini) run their own built-in agentic tooling (web search,
+// code exec) and reject a client-supplied `tools` array outright; guard
+// models are text-classifiers, not chat models, and don't support tool use
+// either. Every other chat model does.
+const NO_TOOL_MODELS = new Set([
+  'groq/compound',
+  'groq/compound-mini',
+  'meta-llama/llama-prompt-guard-2-22m',
+  'meta-llama/llama-prompt-guard-2-86m',
+  'openai/gpt-oss-safeguard-20b',
+]);
+
 function sanitizeBody(body: Record<string, unknown>, model: string): Record<string, unknown> {
   const result = { ...body };
 
   if (!REASONING_MODELS.has(model)) {
     delete result.reasoning_effort;
+  }
+
+  if (NO_TOOL_MODELS.has(model)) {
+    delete result.tools;
+    delete result.tool_choice;
   }
 
   const cap = MAX_COMPLETION_TOKENS[model];
