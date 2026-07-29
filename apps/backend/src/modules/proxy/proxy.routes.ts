@@ -113,6 +113,7 @@ export async function proxyRoutes(app: FastifyInstance) {
   app.post('/chat/completions', async (request, reply) => {
     const body = request.body as Record<string, unknown>;
     const model = (body.model as string) || appConfig.getDefaultModel();
+    app.log.info(`Incoming body size: ${request.headers['content-length'] ?? 'unknown'} bytes`);
     // OpenAI's default is non-streaming unless the caller explicitly opts
     // in — clients that omit `stream` expect a plain JSON body back, not SSE.
     const isStream = body.stream === true;
@@ -184,6 +185,7 @@ export async function proxyRoutes(app: FastifyInstance) {
   app.post('/chat/completions/sync', async (request, reply) => {
     const body = request.body as Record<string, unknown>;
     const model = (body.model as string) || appConfig.getDefaultModel();
+    app.log.info(`Incoming body size: ${request.headers['content-length'] ?? 'unknown'} bytes`);
 
     const sanitizedBody = sanitizeBody(body, model);
     const rateLimit = await modelsRepository.findOrCreate(model);
