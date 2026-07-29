@@ -55,7 +55,17 @@ const NO_TOOL_MODELS = new Set([
   'openai/gpt-oss-safeguard-20b',
 ]);
 
-function sanitizeBody(body: Record<string, unknown>, model: string): Record<string, unknown> {
+// Groq's TPM limit counts prompt tokens *and* the requested `max_tokens`
+// together — a client can send a small prompt and still get rejected if it
+// asks for a huge completion budget the account's per-minute quota can't
+// cover. `modelTpm` is this model's real per-key TPM from our own rate-limit
+// table (accurate to the account, unlike Groq's theoretical per-model cap),
+// so clamp against half of it to leave headroom for the prompt itself.
+function sanitizeBody(
+  body: Record<string, unknown>,
+  model: string,
+  modelTpm: number,
+): Record<string, unknown> {
   const result = { ...body };
 
   if (!REASONING_MODELS.has(model)) {
@@ -67,14 +77,15 @@ function sanitizeBody(body: Record<string, unknown>, model: string): Record<stri
     delete result.tool_choice;
   }
 
-  const cap = MAX_COMPLETION_TOKENS[model];
-  if (cap !== undefined) {
-    if (typeof result.max_tokens === 'number' && result.max_tokens > cap) {
-      result.max_tokens = cap;
-    }
-    if (typeof result.max_completion_tokens === 'number' && result.max_completion_tokens > cap) {
-      result.max_completion_tokens = cap;
-    }
+  const modelCap = MAX_COMPLETION_TOKENS[model] ?? Infinity;
+  const tpmCap = modelTpm > 0 ? Math.max(256, Math.floor(modelTpm / 2)) : Infinity;
+  const cap = Math.min(modelCap, tpmCap);
+
+  if (typeof result.max_tokens === 'number' && result.max_tokens > cap) {
+    result.max_tokens = cap;
+  }
+  if (typeof result.max_completion_tokens === 'number' && result.max_completion_tokens > cap) {
+    result.max_completion_tokens = cap;
   }
 
   return result;
@@ -118,8 +129,8 @@ export async function proxyRoutes(app: FastifyInstance) {
     // in — clients that omit `stream` expect a plain JSON body back, not SSE.
     const isStream = body.stream === true;
 
-    const sanitizedBody = sanitizeBody(body, model);
     const rateLimit = await modelsRepository.findOrCreate(model);
+    const sanitizedBody = sanitizeBody(body, model, rateLimit.tpm);
     const liveKeys = await keysRepository.findLiveKeys(rateLimit.rpd, rateLimit.rpm);
     const outcome = await attemptGroqRequest(app.log, rateLimit, liveKeys, (key) =>
       proxyToGroq(key, model, sanitizedBody, isStream),
@@ -187,8 +198,8 @@ export async function proxyRoutes(app: FastifyInstance) {
     const model = (body.model as string) || appConfig.getDefaultModel();
     app.log.info(`Incoming body size: ${request.headers['content-length'] ?? 'unknown'} bytes`);
 
-    const sanitizedBody = sanitizeBody(body, model);
     const rateLimit = await modelsRepository.findOrCreate(model);
+    const sanitizedBody = sanitizeBody(body, model, rateLimit.tpm);
     const liveKeys = await keysRepository.findLiveKeys(rateLimit.rpd, rateLimit.rpm);
     const outcome = await attemptGroqRequest(app.log, rateLimit, liveKeys, (key) =>
       proxyToGroq(key, model, sanitizedBody, false),
