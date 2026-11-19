@@ -6,6 +6,14 @@ import { attemptGroqRequest } from './attempt';
 import { proxyAudioSpeech, proxyAudioTranscription } from './groq-client';
 import { unavailable, badRequest } from './errors';
 
+function parseUpstreamBody(body: string | undefined): unknown {
+  try {
+    return JSON.parse(body || '{}');
+  } catch {
+    return { error: { message: body || 'Invalid upstream response', type: 'upstream_error' } };
+  }
+}
+
 export async function audioRoutes(app: FastifyInstance) {
   app.addHook('preHandler', authPreHandler);
 
@@ -57,6 +65,9 @@ export async function audioRoutes(app: FastifyInstance) {
     );
 
     if (!outcome.ok) {
+      if (outcome.reason === 'upstream_rejected') {
+        return reply.status(outcome.result.status).send(parseUpstreamBody(outcome.result.body));
+      }
       const message =
         outcome.reason === 'no_keys'
           ? 'No available API keys. All keys are rate-limited or invalid.'
@@ -87,6 +98,9 @@ export async function audioRoutes(app: FastifyInstance) {
     );
 
     if (!outcome.ok) {
+      if (outcome.reason === 'upstream_rejected') {
+        return reply.status(outcome.result.status).send(parseUpstreamBody(outcome.result.body));
+      }
       const message =
         outcome.reason === 'no_keys'
           ? 'No available API keys. All keys are rate-limited or invalid.'

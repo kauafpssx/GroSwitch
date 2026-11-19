@@ -19,6 +19,7 @@ function parseCooldownMs(retryAfterHeader: string | undefined): number {
 
 export type AttemptOutcome =
   | { ok: true; key: ApiKey; result: GroqResponse }
+  | { ok: false; reason: 'upstream_rejected'; result: GroqResponse }
   | { ok: false; reason: 'no_keys' | 'exhausted' };
 
 // Shared by every Groq-backed route (chat, audio transcription, audio
@@ -70,6 +71,15 @@ export async function attemptGroqRequest(
         await keysRepository.markInvalid(selectedKey.id);
         log.warn(`Key "${selectedKey.name}" invalid (status ${result.status}).`);
         continue;
+      }
+
+      // Request-level 4xx errors (invalid model, unsupported parameter,
+      // malformed payload, etc.) are independent of the selected API key.
+      // Retrying the same request with every key only burns RPM slots and
+      // eventually hides the useful Groq error behind "All keys exhausted".
+      if (result.status >= 400 && result.status < 500) {
+        log.warn(`Groq rejected the request with ${result.status}: ${result.body}`);
+        return { ok: false, reason: 'upstream_rejected', result };
       }
 
       if (result.status !== 200) {

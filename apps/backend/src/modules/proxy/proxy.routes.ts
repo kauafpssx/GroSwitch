@@ -6,6 +6,15 @@ import { appConfig } from '@/modules/models/config';
 import { attemptGroqRequest } from './attempt';
 import { proxyToGroq, proxyListModels, proxyGetModel } from './groq-client';
 import { unavailable } from './errors';
+import type { GroqResponse } from './groq-client';
+
+function parseGroqBody(result: GroqResponse): unknown {
+  try {
+    return JSON.parse(result.body || '{}');
+  } catch {
+    return { error: { message: result.body || 'Invalid upstream response', type: 'upstream_error' } };
+  }
+}
 
 // Model listing isn't tied to any single model's rpm/rpd — just needs a live
 // key with headroom, so use generous limits rather than a real model's.
@@ -101,6 +110,9 @@ export async function proxyRoutes(app: FastifyInstance) {
     const outcome = await attemptGroqRequest(app.log, MODEL_LIST_LIMITS, liveKeys, (key) => proxyListModels(key));
 
     if (!outcome.ok) {
+      if (outcome.reason === 'upstream_rejected') {
+        return reply.status(outcome.result.status).send(parseGroqBody(outcome.result));
+      }
       return reply.status(503).send(unavailable('No available API keys.'));
     }
 
@@ -114,6 +126,9 @@ export async function proxyRoutes(app: FastifyInstance) {
     const outcome = await attemptGroqRequest(app.log, MODEL_LIST_LIMITS, liveKeys, (key) => proxyGetModel(key, model));
 
     if (!outcome.ok) {
+      if (outcome.reason === 'upstream_rejected') {
+        return reply.status(outcome.result.status).send(parseGroqBody(outcome.result));
+      }
       return reply.status(503).send(unavailable('No available API keys.'));
     }
 
@@ -137,6 +152,9 @@ export async function proxyRoutes(app: FastifyInstance) {
     );
 
     if (!outcome.ok) {
+      if (outcome.reason === 'upstream_rejected') {
+        return reply.status(outcome.result.status).send(parseGroqBody(outcome.result));
+      }
       const message =
         outcome.reason === 'no_keys'
           ? 'No available API keys. All keys are rate-limited or invalid.'
@@ -206,6 +224,9 @@ export async function proxyRoutes(app: FastifyInstance) {
     );
 
     if (!outcome.ok) {
+      if (outcome.reason === 'upstream_rejected') {
+        return reply.status(outcome.result.status).send(parseGroqBody(outcome.result));
+      }
       const message = outcome.reason === 'no_keys' ? 'No available API keys.' : 'All keys exhausted.';
       return reply.status(503).send(unavailable(message));
     }
