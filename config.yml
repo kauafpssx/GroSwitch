@@ -1,1 +1,1 @@
-defaultModel: llama-3.1-8b-instant
+defaultModel: openai/gpt-oss-20b

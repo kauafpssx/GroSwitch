@@ -23,7 +23,7 @@ X-API-KEY: <MASTER_API_KEY>
 curl -X PUT http://localhost:8400/api/v1/config \
   -H "Content-Type: application/json" \
   -H "X-API-KEY: your-master-api-key" \
-  -d '{ "defaultModel": "llama-3.1-8b-instant" }'
+  -d '{ "defaultModel": "openai/gpt-oss-20b" }'
 ```
 
 ## Response

@@ -13,6 +13,15 @@ interface RateLimit {
 const FALLBACK_RATE_LIMIT: RateLimit = { rpm: 30, rpd: 1000, tpm: 8000 };
 const FALLBACK_MODEL_TYPE: ModelType = 'chat';
 const VALID_MODEL_TYPES = new Set<ModelType>(['chat', 'vision', 'stt', 'tts', 'guard']);
+const DEPRECATED_MODELS = new Set([
+  'allam-2-7b',
+  'groq/compound',
+  'groq/compound-mini',
+  'llama-3.1-8b-instant',
+  'llama-3.3-70b-versatile',
+  'qwen/qwen3-32b',
+  'qwen/qwen3.6-27b',
+]);
 
 function loadCsvRateLimits(): Record<string, RateLimit> {
   // Resolve from the repo root, not import.meta.dir, so this works both
@@ -92,7 +101,9 @@ export const modelsRepository = {
     });
 
     for (const record of records) {
-      if (!(record.model in RATE_LIMITS)) merged.push(this.toDomain(record));
+      if (!(record.model in RATE_LIMITS) && !DEPRECATED_MODELS.has(record.model)) {
+        merged.push(this.toDomain(record));
+      }
     }
 
     return merged.sort((a, b) => a.model.localeCompare(b.model));

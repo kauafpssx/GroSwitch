@@ -29,8 +29,7 @@ const REASONING_MODELS = new Set([
   'openai/gpt-oss-120b',
   'openai/gpt-oss-20b',
   'openai/gpt-oss-safeguard-20b',
-  'qwen/qwen3-32b',
-  'qwen/qwen3.6-27b',
+  'qwen/qwen3.8-27b',
 ]);
 
 // Groq's per-model cap on `max_tokens`/`max_completion_tokens`. OpenAI-SDK
@@ -39,26 +38,17 @@ const REASONING_MODELS = new Set([
 // exceeds the target model's own completion cap, so clamp instead of
 // forwarding it verbatim.
 const MAX_COMPLETION_TOKENS: Record<string, number> = {
-  'llama-3.1-8b-instant': 131072,
-  'llama-3.3-70b-versatile': 32768,
   'openai/gpt-oss-120b': 65536,
   'openai/gpt-oss-20b': 65536,
   'openai/gpt-oss-safeguard-20b': 65536,
-  'qwen/qwen3-32b': 16384,
-  'qwen/qwen3.6-27b': 16384,
-  'groq/compound': 8192,
-  'groq/compound-mini': 8192,
+  'qwen/qwen3.8-27b': 16384,
   'meta-llama/llama-prompt-guard-2-22m': 512,
   'meta-llama/llama-prompt-guard-2-86m': 512,
 };
 
-// groq/compound(-mini) run their own built-in agentic tooling (web search,
-// code exec) and reject a client-supplied `tools` array outright; guard
-// models are text-classifiers, not chat models, and don't support tool use
-// either. Every other chat model does.
+// Guard models are text-classifiers, not chat models, and don't support
+// client-supplied tools. Every chat model in the current catalog does.
 const NO_TOOL_MODELS = new Set([
-  'groq/compound',
-  'groq/compound-mini',
   'meta-llama/llama-prompt-guard-2-22m',
   'meta-llama/llama-prompt-guard-2-86m',
   'openai/gpt-oss-safeguard-20b',

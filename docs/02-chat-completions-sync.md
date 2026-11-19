@@ -26,7 +26,7 @@ curl -X POST http://localhost:8400/v1/chat/completions/sync \
   -H "Content-Type: application/json" \
   -H "X-API-KEY: your-master-api-key" \
   -d '{
-    "model": "llama-3.1-8b-instant",
+    "model": "openai/gpt-oss-20b",
     "messages": [{"role": "user", "content": "Hello!"}]
   }'
 ```
@@ -37,7 +37,7 @@ curl -X POST http://localhost:8400/v1/chat/completions/sync \
 {
   "id": "chatcmpl-...",
   "object": "chat.completion",
-  "model": "llama-3.1-8b-instant",
+  "model": "openai/gpt-oss-20b",
   "choices": [{ "index": 0, "message": { "role": "assistant", "content": "..." }, "finish_reason": "stop" }],
   "usage": { "prompt_tokens": 37, "completion_tokens": 2, "total_tokens": 39 },
   "x_groq": { "id": "req_...", "usage": { "queue_time": 0.15, "prompt_time": 0.002, "completion_time": 0.004, "total_time": 0.006 } }

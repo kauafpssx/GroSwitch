@@ -30,7 +30,7 @@ curl http://localhost:8400/api/v1/stats \
     "deadByReason": { "minute_limit": 0, "daily_limit": 0, "rate_limit": 0 },
     "dailyLimit": 14400,
     "minuteLimit": 30,
-    "defaultModel": "llama-3.1-8b-instant"
+    "defaultModel": "openai/gpt-oss-20b"
   }
 }
 ```
